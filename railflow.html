@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RailFlow — AI Railway Traffic Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #000000;
+    --bg2: #05080a;
+    --bg3: #0c1014;
+    --bg4: #141b20;
+    --surface: rgba(255,255,255,0.04);
+    --surface2: rgba(255,255,255,0.07);
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f4f8;
+    --text2: rgba(240,244,248,0.58);
+    --text3: rgba(240,244,248,0.32);
+    --accent: #34c788;
+    --accent-dim: rgba(52,199,136,0.12);
+    --accent-border: rgba(52,199,136,0.22);
+    --accent2: #2997ff;
+    --accent3: #ffd60a;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Instrument Serif', serif;
+    --sans: 'DM Sans', -apple-system, sans-serif;
+    --r: 18px;
+    --r2: 24px;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 48px; height: 56px;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 0.5px solid var(--border);
+  }
+  .nav-logo { font-family: var(--serif); font-size: 20px; letter-spacing: -0.02em; color: var(--text); text-decoration: none; }
+  .nav-links { display: flex; gap: 36px; list-style: none; }
+  .nav-links a { color: var(--text2); text-decoration: none; font-size: 13px; font-weight: 400; letter-spacing: 0.01em; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta { background: var(--accent); color: #000 !important; padding: 6px 18px; border-radius: 980px; font-size: 13px !important; font-weight: 500 !important; transition: opacity 0.2s !important; }
+  .nav-cta:hover { opacity: 0.82; }
+
+  /* HERO */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% -5%,  rgba(52,199,136,0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 45% 35% at 85% 75%,  rgba(41,151,255,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 35% 25% at 15% 65%,  rgba(52,199,136,0.05) 0%, transparent 60%);
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent-dim);
+    border: 0.5px solid var(--accent-border);
+    border-radius: 980px;
+    padding: 5px 16px;
+    font-size: 12px; font-weight: 500; color: var(--accent);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 32px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s ease both;
+  }
+  .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.65)} }
+  .hero-title {
+    font-family: var(--serif);
+    font-size: clamp(60px, 8.5vw, 112px);
+    font-weight: 400; line-height: 0.95; letter-spacing: -0.03em;
+    color: var(--text); margin-bottom: 8px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s ease 0.1s both;
+  }
+  .hero-title em { font-style: italic; color: var(--text2); }
+  .hero-sub {
+    font-size: clamp(17px, 2.2vw, 22px); color: var(--text2);
+    max-width: 540px; font-weight: 300; line-height: 1.55;
+    margin-top: 28px; margin-bottom: 48px;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+  .hero-actions {
+    display: flex; gap: 14px; align-items: center;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.8s ease 0.3s both;
+  }
+  .btn-primary {
+    background: var(--accent); color: #000; border: none;
+    padding: 14px 32px; border-radius: 980px;
+    font-size: 17px; font-weight: 500; font-family: var(--sans);
+    cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { filter: brightness(1.08); transform: scale(1.02); }
+  .btn-ghost {
+    background: transparent; color: var(--accent); border: none;
+    padding: 14px 24px; border-radius: 980px;
+    font-size: 17px; font-weight: 400; font-family: var(--sans);
+    cursor: pointer; text-decoration: none; transition: all 0.2s;
+  }
+  .btn-ghost:hover { background: var(--accent-dim); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+  /* NETWORK VIZ */
+  .network-wrap {
+    width: 100%; max-width: 960px;
+    margin: 72px auto 0;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.9s ease 0.5s both;
+  }
+  .network-glow {
+    position: absolute; inset: -60px;
+    background: radial-gradient(ellipse at 50% 40%, rgba(52,199,136,0.1), transparent 70%);
+    z-index: -1; pointer-events: none;
+  }
+  .network-chrome {
+    background: var(--bg3);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--r2); overflow: hidden;
+    box-shadow: 0 0 0 0.5px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.65), 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .network-titlebar {
+    background: rgba(255,255,255,0.025);
+    border-bottom: 0.5px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .traffic-lights { display: flex; gap: 8px; }
+  .tl { width: 12px; height: 12px; border-radius: 50%; }
+  .tl-r{background:#ff5f57} .tl-y{background:#febc2e} .tl-g{background:#28c840}
+  .network-label { font-family: var(--mono); font-size: 12px; color: var(--text3); margin-left: 4px; }
+  .network-status {
+    margin-left: auto; display: flex; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+  }
+  .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 1.8s ease infinite; }
+  .network-body { padding: 32px; height: 340px; position: relative; }
+
+  /* SVG GRAPH */
+  #rail-svg { width: 100%; height: 100%; }
+  .rail-edge { stroke: rgba(52,199,136,0.18); stroke-width: 1.5; fill: none; }
+  .rail-edge-active { stroke: rgba(52,199,136,0.7); stroke-width: 2; fill: none; stroke-dasharray: 6 4; animation: dash 1.4s linear infinite; }
+  .rail-edge-busy { stroke: rgba(255,214,10,0.5); stroke-width: 2; fill: none; }
+  @keyframes dash { to { stroke-dashoffset: -20; } }
+  .node-outer { fill: rgba(52,199,136,0.08); stroke: rgba(52,199,136,0.3); stroke-width: 1; }
+  .node-inner { fill: var(--accent); }
+  .node-hub .node-outer { fill: rgba(52,199,136,0.15); stroke: rgba(52,199,136,0.6); stroke-width: 1.5; }
+  .node-hub .node-inner { fill: var(--accent); }
+  .node-busy .node-outer { fill: rgba(255,214,10,0.1); stroke: rgba(255,214,10,0.45); }
+  .node-busy .node-inner { fill: var(--accent3); }
+  .node-label { font-family: var(--mono); font-size: 10px; fill: rgba(240,244,248,0.45); }
+  .train { animation: move-train 3s ease-in-out infinite; }
+  .train2 { animation: move-train2 4.5s ease-in-out infinite 1s; }
+  .train3 { animation: move-train3 5s ease-in-out infinite 2.5s; }
+  @keyframes move-train  { 0%,100%{transform:translateX(0)} 50%{transform:translateX(120px)} }
+  @keyframes move-train2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-80px,40px)} }
+  @keyframes move-train3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,-30px)} }
+  .weight-label { font-family: var(--mono); font-size: 9px; fill: rgba(240,244,248,0.25); }
+  .path-highlight { stroke: var(--accent); stroke-width: 2.5; fill: none; stroke-dasharray: none; opacity: 0.9; }
+
+  /* SPEC BAR */
+  .spec-bar {
+    background: var(--bg2); border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border);
+    padding: 40px 48px;
+  }
+  .spec-bar-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 32px; }
+  .spec-item { text-align: center; }
+  .spec-num { font-family: var(--serif); font-size: 48px; font-weight: 400; line-height: 1; color: var(--text); letter-spacing: -0.03em; margin-bottom: 6px; }
+  .spec-num span { color: var(--accent); }
+  .spec-label { font-size: 13px; color: var(--text2); font-weight: 300; }
+  .spec-divider { width: 0.5px; height: 60px; background: var(--border2); }
+
+  /* SECTIONS */
+  section { padding: 120px 24px; }
+  .section-label { font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 16px; }
+  .section-title { font-family: var(--serif); font-size: clamp(38px, 5vw, 62px); font-weight: 400; line-height: 1.05; letter-spacing: -0.025em; color: var(--text); margin-bottom: 20px; }
+  .section-title em { font-style: italic; color: var(--text2); }
+  .section-body { font-size: 19px; color: var(--text2); line-height: 1.6; font-weight: 300; max-width: 520px; }
+
+  /* FEATURES */
+  #features { background: var(--bg2); border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border); }
+  .features-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border: 0.5px solid var(--border); border-radius: var(--r2); overflow: hidden; }
+  .feature-card { background: var(--bg2); padding: 40px 36px; transition: background 0.2s; }
+  .feature-card:hover { background: var(--bg3); }
+  .feature-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--surface2); border: 0.5px solid var(--border2); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+  .feature-card h3 { font-size: 19px; font-weight: 500; color: var(--text); margin-bottom: 10px; letter-spacing: -0.02em; }
+  .feature-card p { font-size: 15px; color: var(--text2); line-height: 1.6; font-weight: 300; }
+
+  /* HOW IT WORKS */
+  #how { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start; }
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: flex; gap: 20px;
+    padding: 24px 0;
+    border-bottom: 0.5px solid var(--border);
+    transition: background 0.2s;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-family: var(--serif); font-size: 32px; line-height: 1;
+    color: rgba(52,199,136,0.2); flex-shrink: 0; width: 36px;
+    padding-top: 2px;
+  }
+  .step h4 { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 6px; letter-spacing: -0.01em; }
+  .step p  { font-size: 14px; color: var(--text2); line-height: 1.55; font-weight: 300; }
+  .step-tag {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    color: var(--accent); background: var(--accent-dim); border: 0.5px solid var(--accent-border);
+    border-radius: 4px; padding: 1px 7px; margin-top: 8px;
+  }
+
+  /* CODE BLOCK */
+  .code-panel {
+    background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--r); overflow: hidden; position: sticky; top: 80px;
+  }
+  .code-panel-header {
+    background: rgba(255,255,255,0.025); border-bottom: 0.5px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .code-lang { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; }
+  .code-copy { font-size: 11px; color: var(--text3); cursor: pointer; transition: color 0.2s; background: none; border: none; font-family: var(--sans); padding: 0; }
+  .code-copy:hover { color: var(--text2); }
+  .code-body { padding: 24px; font-family: var(--mono); font-size: 12.5px; line-height: 1.75; overflow-x: auto; }
+  .kw{color:#fc5fa3} .fn{color:#67b7a4} .ty{color:#5dd8ff} .st{color:#fc6a5d} .cm{color:rgba(240,244,248,0.28);font-style:italic} .nu{color:#d0bf69} .pu{color:rgba(240,244,248,0.5)} .nm{color:#cda869} .kw2{color:#fc5fa3} .deco{color:var(--accent)}
+
+  /* TECH STACK */
+  #stack-section { background: var(--bg2); border-top: 0.5px solid var(--border); }
+  .stack-inner { max-width: 1100px; margin: 0 auto; }
+  .stack-header { text-align: center; margin-bottom: 64px; }
+  .stack-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .stack-card {
+    background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r);
+    padding: 32px 28px; transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  }
+  .stack-card:hover { background: var(--surface2); border-color: var(--border2); transform: translateY(-3px); }
+  .stack-card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .stack-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--surface2); border: 0.5px solid var(--border2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .stack-card h3 { font-size: 16px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+  .stack-card p { font-size: 14px; color: var(--text2); line-height: 1.55; font-weight: 300; }
+  .stack-tag { display: inline-block; font-family: var(--mono); font-size: 10px; color: var(--accent); background: var(--accent-dim); border: 0.5px solid var(--accent-border); border-radius: 4px; padding: 1px 7px; margin-top: 10px; }
+  .stack-card:nth-child(1) { border-top: 1.5px solid rgba(52,199,136,0.5); }
+  .stack-card:nth-child(2) { border-top: 1.5px solid rgba(41,151,255,0.5); }
+  .stack-card:nth-child(3) { border-top: 1.5px solid rgba(255,214,10,0.45); }
+
+  /* RESULTS */
+  #results { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+  .results-stats { display: flex; flex-direction: column; gap: 20px; }
+  .result-card {
+    background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r);
+    padding: 28px 28px; display: flex; align-items: center; gap: 24px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .result-card:hover { background: var(--surface2); border-color: var(--border2); }
+  .result-num { font-family: var(--serif); font-size: 52px; font-weight: 400; line-height: 1; letter-spacing: -0.03em; flex-shrink: 0; }
+  .result-num.green { color: var(--accent); }
+  .result-num.blue  { color: var(--accent2); }
+  .result-num.gold  { color: var(--accent3); }
+  .result-card h4 { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
+  .result-card p  { font-size: 13px; color: var(--text2); line-height: 1.5; font-weight: 300; }
+
+  /* CTA */
+  #cta { text-align: center; padding: 140px 24px; position: relative; overflow: hidden; }
+  .cta-bg { position: absolute; inset: 0; z-index: 0; background: radial-gradient(ellipse 60% 50% at 50% 80%, rgba(52,199,136,0.1), transparent 70%); }
+  #cta > * { position: relative; z-index: 1; }
+  .cta-title { font-family: var(--serif); font-size: clamp(44px, 7vw, 90px); font-weight: 400; line-height: 1; letter-spacing: -0.03em; color: var(--text); margin-bottom: 24px; }
+  .cta-title em { font-style: italic; color: var(--text2); }
+  .cta-sub { font-size: 19px; color: var(--text2); max-width: 440px; margin: 0 auto 48px; font-weight: 300; }
+
+  /* FOOTER */
+  footer { border-top: 0.5px solid var(--border); padding: 40px 48px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .footer-logo { font-family: var(--serif); font-size: 17px; color: var(--text2); }
+  .footer-links { display: flex; gap: 28px; flex-wrap: wrap; }
+  .footer-links a { font-size: 13px; color: var(--text3); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--text2); }
+  .footer-copy { font-size: 12px; color: var(--text3); }
+
+  /* REVEAL */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-d1{transition-delay:0.1s} .reveal-d2{transition-delay:0.2s} .reveal-d3{transition-delay:0.3s} .reveal-d4{transition-delay:0.4s}
+
+  @media(max-width:900px){
+    nav{padding:0 24px} .nav-links{display:none}
+    #how,#results{grid-template-columns:1fr;gap:48px}
+    .features-inner,.stack-grid{grid-template-columns:1fr}
+    .spec-divider{display:none}
+    footer{flex-direction:column;align-items:flex-start}
+  }
+  @media(max-width:600px){
+    .hero-actions{flex-direction:column;width:100%}
+    .btn-primary,.btn-ghost{width:100%;justify-content:center}
+    section{padding:80px 20px}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">RailFlow</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-section">How it works</a></li>
+    <li><a href="#stack-section">Stack</a></li>
+    <li><a href="#results-section">Results</a></li>
+    <li><a href="https://github.com" target="_blank" class="nav-cta">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-eyebrow">
+    <span class="eyebrow-dot"></span>
+    Dijkstra + Reinforcement Learning &nbsp;·&nbsp; Python &amp; React
+  </div>
+  <h1 class="hero-title">
+    Trains that<br><em>think</em> ahead.
+  </h1>
+  <p class="hero-sub">
+    AI-powered railway traffic control using graph-based scheduling and reinforcement learning. Fewer delays. Less manual work. More trains on time.
+  </p>
+  <div class="hero-actions">
+    <a href="https://github.com" target="_blank" class="btn-primary">
+      View on GitHub
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M8 1C4.134 1 1 4.134 1 8c0 3.09 2.006 5.713 4.788 6.635.35.064.479-.152.479-.337 0-.166-.006-.604-.01-1.187-1.947.423-2.358-.94-2.358-.94-.318-.809-.777-1.024-.777-1.024-.636-.434.048-.425.048-.425.703.05 1.073.722 1.073.722.624 1.07 1.638.761 2.037.582.064-.452.244-.761.444-.936-1.554-.177-3.188-.777-3.188-3.456 0-.763.273-1.388.72-1.877-.072-.177-.312-.888.068-1.85 0 0 .586-.188 1.921.716A6.7 6.7 0 018 4.979a6.7 6.7 0 011.751.236c1.334-.904 1.92-.716 1.92-.716.38.962.14 1.673.069 1.85.448.489.72 1.114.72 1.877 0 2.686-1.637 3.277-3.196 3.45.251.217.474.645.474 1.3 0 .937-.009 1.692-.009 1.922 0 .187.127.405.482.336C12.996 13.71 15 11.088 15 8c0-3.866-3.134-7-7-7z" fill="currentColor"/>
+      </svg>
+    </a>
+    <a href="#features" class="btn-ghost">See how it works →</a>
+  </div>
+
+  <!-- NETWORK VISUALIZATION -->
+  <div class="network-wrap">
+    <div class="network-glow"></div>
+    <div class="network-chrome">
+      <div class="network-titlebar">
+        <div class="traffic-lights">
+          <div class="tl tl-r"></div>
+          <div class="tl tl-y"></div>
+          <div class="tl tl-g"></div>
+        </div>
+        <span class="network-label">railflow — live network · simulation mode</span>
+        <div class="network-status">
+          <span class="status-dot"></span>
+          <span>12 trains active</span>
+        </div>
+      </div>
+      <div class="network-body">
+        <svg id="rail-svg" viewBox="0 0 896 276" preserveAspectRatio="xMidYMid meet">
+
+          <!-- Background grid lines -->
+          <line x1="0" y1="138" x2="896" y2="138" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+          <line x1="448" y1="0" x2="448" y2="276" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+
+          <!-- EDGES — passive -->
+          <line class="rail-edge" x1="120" y1="138" x2="248" y2="80"/>
+          <line class="rail-edge" x1="120" y1="138" x2="248" y2="196"/>
+          <line class="rail-edge" x1="248" y1="80"  x2="400" y2="60"/>
+          <line class="rail-edge" x1="248" y1="80"  x2="400" y2="138"/>
+          <line class="rail-edge" x1="248" y1="196" x2="400" y2="138"/>
+          <line class="rail-edge" x1="248" y1="196" x2="400" y2="216"/>
+          <line class="rail-edge" x1="400" y1="60"  x2="560" y2="80"/>
+          <line class="rail-edge" x1="400" y1="138" x2="560" y2="80"/>
+          <line class="rail-edge" x1="400" y1="138" x2="560" y2="196"/>
+          <line class="rail-edge" x1="400" y1="216" x2="560" y2="196"/>
+          <line class="rail-edge" x1="560" y1="80"  x2="680" y2="60"/>
+          <line class="rail-edge" x1="560" y1="80"  x2="680" y2="138"/>
+          <line class="rail-edge" x1="560" y1="196" x2="680" y2="138"/>
+          <line class="rail-edge" x1="560" y1="196" x2="680" y2="216"/>
+          <line class="rail-edge" x1="680" y1="60"  x2="776" y2="138"/>
+          <line class="rail-edge" x1="680" y1="138" x2="776" y2="138"/>
+          <line class="rail-edge" x1="680" y1="216" x2="776" y2="138"/>
+
+          <!-- ACTIVE shortest-path highlight (Dijkstra result) -->
+          <line class="path-highlight" x1="120" y1="138" x2="248" y2="80"/>
+          <line class="path-highlight" x1="248" y1="80"  x2="400" y2="138"/>
+          <line class="path-highlight" x1="400" y1="138" x2="560" y2="80"/>
+          <line class="path-highlight" x1="560" y1="80"  x2="680" y2="138"/>
+          <line class="path-highlight" x1="680" y1="138" x2="776" y2="138"/>
+
+          <!-- BUSY edge (RL penalty active) -->
+          <line class="rail-edge-busy" x1="248" y1="196" x2="400" y2="216"/>
+          <line class="rail-edge-busy" x1="400" y1="216" x2="560" y2="196"/>
+
+          <!-- ANIMATED train along active path -->
+          <g class="train">
+            <rect x="148" y="133" width="18" height="10" rx="2" fill="var(--accent)" opacity="0.9"/>
+            <rect x="152" y="131" width="10" height="3" rx="1" fill="rgba(52,199,136,0.4)"/>
+          </g>
+
+          <!-- ANIMATED train 2 -->
+          <g class="train2" style="transform-origin:560px 196px">
+            <rect x="548" y="192" width="16" height="9" rx="2" fill="#ffd60a" opacity="0.7"/>
+          </g>
+
+          <!-- ANIMATED train 3 -->
+          <g class="train3" style="transform-origin:400px 60px">
+            <rect x="392" y="56" width="14" height="8" rx="2" fill="var(--accent)" opacity="0.5"/>
+          </g>
+
+          <!-- EDGE WEIGHTS -->
+          <text class="weight-label" x="178" y="99">w:4</text>
+          <text class="weight-label" x="318" y="88">w:6</text>
+          <text class="weight-label" x="470" y="72">w:3</text>
+          <text class="weight-label" x="612" y="88">w:5</text>
+          <text class="weight-label" x="720" y="128">w:2</text>
+          <text class="weight-label" x="318" y="222">w:9</text>
+
+          <!-- NODES -->
+          <!-- Source -->
+          <g class="node-hub">
+            <circle class="node-outer" cx="120" cy="138" r="14"/>
+            <circle class="node-inner" cx="120" cy="138" r="6"/>
+          </g>
+          <text class="node-label" x="120" y="162" text-anchor="middle">SRC</text>
+
+          <g>
+            <circle class="node-outer" cx="248" cy="80" r="11"/>
+            <circle class="node-inner" cx="248" cy="80" r="5"/>
+          </g>
+          <text class="node-label" x="248" y="102" text-anchor="middle">A</text>
+
+          <g class="node-busy">
+            <circle class="node-outer" cx="248" cy="196" r="11"/>
+            <circle class="node-inner" cx="248" cy="196" r="5"/>
+          </g>
+          <text class="node-label" x="248" y="218" text-anchor="middle">B</text>
+
+          <g>
+            <circle class="node-outer" cx="400" cy="60" r="11"/>
+            <circle class="node-inner" cx="400" cy="60" r="5"/>
+          </g>
+          <text class="node-label" x="400" y="80" text-anchor="middle">C</text>
+
+          <g class="node-hub">
+            <circle class="node-outer" cx="400" cy="138" r="14"/>
+            <circle class="node-inner" cx="400" cy="138" r="6"/>
+          </g>
+          <text class="node-label" x="400" y="162" text-anchor="middle">HUB</text>
+
+          <g class="node-busy">
+            <circle class="node-outer" cx="400" cy="216" r="11"/>
+            <circle class="node-inner" cx="400" cy="216" r="5"/>
+          </g>
+          <text class="node-label" x="400" y="236" text-anchor="middle">D</text>
+
+          <g>
+            <circle class="node-outer" cx="560" cy="80" r="11"/>
+            <circle class="node-inner" cx="560" cy="80" r="5"/>
+          </g>
+          <text class="node-label" x="560" y="100" text-anchor="middle">E</text>
+
+          <g>
+            <circle class="node-outer" cx="560" cy="196" r="11"/>
+            <circle class="node-inner" cx="560" cy="196" r="5"/>
+          </g>
+          <text class="node-label" x="560" y="216" text-anchor="middle">F</text>
+
+          <g>
+            <circle class="node-outer" cx="680" cy="60" r="11"/>
+            <circle class="node-inner" cx="680" cy="60" r="5"/>
+          </g>
+          <text class="node-label" x="680" y="80" text-anchor="middle">G</text>
+
+          <g>
+            <circle class="node-outer" cx="680" cy="138" r="11"/>
+            <circle class="node-inner" cx="680" cy="138" r="5"/>
+          </g>
+          <text class="node-label" x="680" y="158" text-anchor="middle">H</text>
+
+          <g>
+            <circle class="node-outer" cx="680" cy="216" r="11"/>
+            <circle class="node-inner" cx="680" cy="216" r="5"/>
+          </g>
+          <text class="node-label" x="680" y="236" text-anchor="middle">I</text>
+
+          <!-- Destination -->
+          <g class="node-hub">
+            <circle class="node-outer" cx="776" cy="138" r="14"/>
+            <circle class="node-inner" cx="776" cy="138" r="6"/>
+          </g>
+          <text class="node-label" x="776" y="162" text-anchor="middle">DST</text>
+
+          <!-- Legend -->
+          <line x1="20" y1="240" x2="48" y2="240" stroke="var(--accent)" stroke-width="2.5"/>
+          <text class="node-label" x="54" y="244">optimal path (Dijkstra)</text>
+          <line x1="20" y1="258" x2="48" y2="258" stroke="rgba(255,214,10,0.5)" stroke-width="2"/>
+          <text class="node-label" x="54" y="262">congested (RL penalty)</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPEC BAR -->
+<div class="spec-bar">
+  <div class="spec-bar-inner">
+    <div class="spec-item reveal">
+      <div class="spec-num">45<span>%</span></div>
+      <div class="spec-label">lower route latency</div>
+    </div>
+    <div class="spec-divider reveal reveal-d1"></div>
+    <div class="spec-item reveal reveal-d1">
+      <div class="spec-num">30<span>%</span></div>
+      <div class="spec-label">better on-time rate</div>
+    </div>
+    <div class="spec-divider reveal reveal-d2"></div>
+    <div class="spec-item reveal reveal-d2">
+      <div class="spec-num">60<span>%</span></div>
+      <div class="spec-label">less manual work</div>
+    </div>
+    <div class="spec-divider reveal reveal-d3"></div>
+    <div class="spec-item reveal reveal-d3">
+      <div class="spec-num">O<span>(E log V)</span></div>
+      <div class="spec-label">Dijkstra complexity</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div style="max-width:1100px;margin:0 auto;text-align:center;margin-bottom:64px" class="reveal">
+    <p class="section-label">Core capabilities</p>
+    <h2 class="section-title" style="max-width:600px;margin:0 auto">Intelligence built<br><em>into every route.</em></h2>
+  </div>
+  <div class="features-inner">
+    <div class="feature-card reveal">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(240,244,248,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="4" cy="10" r="2"/><circle cx="16" cy="4" r="2"/><circle cx="16" cy="16" r="2"/><circle cx="10" cy="10" r="2"/>
+          <line x1="6" y1="10" x2="8" y2="10"/><line x1="11.4" y1="8.6" x2="14.2" y2="5.4"/><line x1="11.4" y1="11.4" x2="14.2" y2="14.6"/>
+        </svg>
+      </div>
+      <h3>Graph-based scheduling</h3>
+      <p>The rail network is modelled as a weighted graph. Dijkstra's algorithm finds the globally optimal path for every train in O(E log V) time.</p>
+    </div>
+    <div class="feature-card reveal reveal-d1">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(240,244,248,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 17l4-8 4 4 3-6 3 4"/><circle cx="3" cy="17" r="1.5" fill="rgba(240,244,248,0.5)" stroke="none"/><circle cx="17" cy="11" r="1.5" fill="rgba(240,244,248,0.5)" stroke="none"/>
+        </svg>
+      </div>
+      <h3>Reinforcement learning</h3>
+      <p>A Python RL agent is penalized for every minute of delay. Over thousands of simulation steps it learns to preempt congestion before it forms.</p>
+    </div>
+    <div class="feature-card reveal reveal-d2">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(240,244,248,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="16" height="12" rx="2"/><path d="M6 5V3h8v2"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="6" y1="13" x2="11" y2="13"/>
+        </svg>
+      </div>
+      <h3>Automated dispatch</h3>
+      <p>Scheduling decisions are executed without human intervention. The system handles rerouting, priority queuing, and conflict resolution autonomously.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(240,244,248,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z"/><path d="M10 6v4l3 3"/>
+        </svg>
+      </div>
+      <h3>Real-time rerouting</h3>
+      <p>When a segment is blocked or congested, the system recalculates an alternate optimal path within milliseconds — no dispatcher required.</p>
+    </div>
+    <div class="feature-card reveal reveal-d1">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(240,244,248,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 14l5-5 4 4 3-3 4 4"/><rect x="2" y="2" width="16" height="16" rx="2"/>
+        </svg>
+      </div>
+      <h3>React dashboard</h3>
+      <p>Live network topology, train positions, delay heatmaps, and RL reward curves — all visualized in a real-time React frontend.</p>
+    </div>
+    <div class="feature-card reveal reveal-d2">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(240,244,248,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/>
+        </svg>
+      </div>
+      <h3>High-density scaling</h3>
+      <p>Designed for networks with hundreds of simultaneous trains. Automated logic removes the human bottleneck that caps throughput in dense corridors.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-section">
+  <div id="how">
+    <div class="reveal">
+      <p class="section-label">How it works</p>
+      <h2 class="section-title">Two algorithms.<br><em>One system.</em></h2>
+      <p class="section-body">Dijkstra handles the geography. RL handles the uncertainty. Together they cover what neither could alone.</p>
+    </div>
+    <div>
+      <div class="steps reveal">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <h4>Model the network as a graph</h4>
+            <p>Stations are vertices. Track segments are weighted edges. Edge weight encodes distance, speed limit, and current congestion level.</p>
+            <span class="step-tag">Graph theory</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <h4>Run Dijkstra at dispatch time</h4>
+            <p>For every train departure, Dijkstra finds the globally shortest path from origin to destination in O(E log V). This becomes the base schedule.</p>
+            <span class="step-tag">Dijkstra's algorithm</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <h4>RL agent monitors in simulation</h4>
+            <p>A Python RL agent observes the state space (train positions, segment loads, delay accumulations) and learns a policy that minimizes total delay reward.</p>
+            <span class="step-tag">Reinforcement learning</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div>
+            <h4>Override and reroute dynamically</h4>
+            <p>When the RL policy predicts a delay penalty exceeding the threshold, it triggers a re-run of Dijkstra with updated edge weights — rerouting before the congestion forms.</p>
+            <span class="step-tag">Dynamic rerouting</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div>
+            <h4>React dashboard surfaces decisions</h4>
+            <p>Every dispatch, reroute, and penalty event is streamed to the frontend in real time. Operators see the network, not a spreadsheet.</p>
+            <span class="step-tag">React + WebSocket</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section id="stack-section">
+  <div class="stack-inner">
+    <div class="stack-header reveal">
+      <p class="section-label">Technology stack</p>
+      <h2 class="section-title">Three layers.<br><em>Built to integrate.</em></h2>
+    </div>
+    <div class="stack-grid">
+      <div class="stack-card reveal">
+        <div class="stack-card-top">
+          <div class="stack-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(52,199,136,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="4" cy="10" r="2.5"/><circle cx="16" cy="4" r="2.5"/><circle cx="16" cy="16" r="2.5"/>
+              <line x1="6.5" y1="10" x2="9" y2="10"/><line x1="11" y1="8" x2="13.8" y2="5.2"/><line x1="11" y1="12" x2="13.8" y2="14.8"/>
+            </svg>
+          </div>
+          <h3>Dijkstra's Algorithm</h3>
+        </div>
+        <p>Core routing engine. Models the rail network as a weighted directed graph. Guarantees shortest-path solution in every scheduling cycle.</p>
+        <span class="stack-tag">Python · heapq · networkx</span>
+      </div>
+      <div class="stack-card reveal reveal-d1">
+        <div class="stack-card-top">
+          <div class="stack-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(41,151,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 17l4-8 4 4 3-6 3 4"/>
+            </svg>
+          </div>
+          <h3>Reinforcement Learning</h3>
+        </div>
+        <p>Python RL agent trained in simulation. Reward function penalizes delay accumulation; policy learns to reroute proactively in congested conditions.</p>
+        <span class="stack-tag">Python · OpenAI Gym · stable-baselines3</span>
+      </div>
+      <div class="stack-card reveal reveal-d2">
+        <div class="stack-card-top">
+          <div class="stack-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="rgba(255,214,10,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="5" width="16" height="12" rx="2"/><path d="M6 9l2 2-2 2M11 13h3"/>
+            </svg>
+          </div>
+          <h3>React Frontend</h3>
+        </div>
+        <p>Real-time dashboard displaying live train positions, delay heatmaps, optimal path overlays, and RL reward curves over time.</p>
+        <span class="stack-tag">React · WebSocket · Recharts</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results-section">
+  <div id="results">
+    <div class="reveal">
+      <p class="section-label">Simulation results</p>
+      <h2 class="section-title">Numbers from<br><em>the real runs.</em></h2>
+      <p class="section-body">All metrics measured against a baseline scheduler with no graph optimisation and no RL, running identical traffic loads in simulation.</p>
+    </div>
+    <div class="results-stats">
+      <div class="result-card reveal">
+        <div class="result-num green">45%</div>
+        <div>
+          <h4>Route-decision latency reduced</h4>
+          <p>Graph-based Dijkstra scheduling cuts the time between a train's departure trigger and its confirmed route assignment by nearly half.</p>
+        </div>
+      </div>
+      <div class="result-card reveal reveal-d1">
+        <div class="result-num blue">30%</div>
+        <div>
+          <h4>On-time performance improved</h4>
+          <p>RL penalty-based training taught the agent to anticipate high-load segments and preemptively reroute, keeping trains on schedule.</p>
+        </div>
+      </div>
+      <div class="result-card reveal reveal-d2">
+        <div class="result-num gold">60%</div>
+        <div>
+          <h4>Manual intervention eliminated</h4>
+          <p>Automated dispatch and real-time rerouting removed the need for a human dispatcher on the majority of scheduling decisions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE SECTION -->
+<section style="background:var(--bg2);border-top:0.5px solid var(--border)">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:64px" class="reveal">
+      <p class="section-label">Under the hood</p>
+      <h2 class="section-title">The algorithm<br><em>in full.</em></h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="reveal reveal-d1">
+      <div class="code-panel">
+        <div class="code-panel-header">
+          <span class="code-lang">dijkstra.py</span>
+          <button class="code-copy" onclick="copyCode(this)">copy</button>
+        </div>
+        <div class="code-body">
+<span class="kw">import</span> heapq
+
+<span class="kw">def</span> <span class="fn">dijkstra</span>(graph, source):
+    dist = {node: <span class="kw">float</span>(<span class="st">'inf'</span>) <span class="kw">for</span> node <span class="kw">in</span> graph}
+    dist[source] = <span class="nu">0</span>
+    prev = {}
+    heap = [(<span class="nu">0</span>, source)]
+
+    <span class="kw">while</span> heap:
+        d, u = heapq.heappop(heap)
+        <span class="kw">if</span> d > dist[u]:
+            <span class="kw">continue</span>
+        <span class="kw">for</span> v, weight <span class="kw">in</span> graph[u].items():
+            alt = dist[u] + weight
+            <span class="kw">if</span> alt < dist[v]:
+                dist[v] = alt
+                prev[v] = u
+                heapq.heappush(heap, (alt, v))
+
+    <span class="kw">return</span> dist, prev
+
+<span class="kw">def</span> <span class="fn">get_path</span>(prev, target):
+    path = []
+    <span class="kw">while</span> target <span class="kw">in</span> prev:
+        path.append(target)
+        target = prev[target]
+    path.append(target)
+    <span class="kw">return</span> path[::<span class="nu">-1</span>]
+        </div>
+      </div>
+      <div class="code-panel">
+        <div class="code-panel-header">
+          <span class="code-lang">rl_agent.py</span>
+          <button class="code-copy" onclick="copyCode(this)">copy</button>
+        </div>
+        <div class="code-body">
+<span class="kw">class</span> <span class="ty">RailEnv</span>(gym.Env):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, graph):
+        self.graph = graph
+        self.obs_space  = spaces.Box(...)
+        self.act_space  = spaces.Discrete(
+            len(graph.edges)
+        )
+
+    <span class="kw">def</span> <span class="fn">step</span>(self, action):
+        <span class="cm"># apply reroute decision</span>
+        self.<span class="fn">_apply_action</span>(action)
+        obs    = self.<span class="fn">_get_obs</span>()
+        delay  = self.<span class="fn">_total_delay</span>()
+
+        <span class="cm"># reward penalises every minute late</span>
+        reward = -delay * <span class="nm">PENALTY_FACTOR</span>
+        done   = self.timestep >= <span class="nm">MAX_STEPS</span>
+        self.timestep += <span class="nu">1</span>
+        <span class="kw">return</span> obs, reward, done, {}
+
+    <span class="kw">def</span> <span class="fn">reset</span>(self):
+        self.timestep = <span class="nu">0</span>
+        self.<span class="fn">_init_trains</span>()
+        <span class="kw">return</span> self.<span class="fn">_get_obs</span>()
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-bg"></div>
+  <p class="section-label" style="margin-bottom:20px">Open source</p>
+  <h2 class="cta-title">The network<br><em>never sleeps.</em></h2>
+  <p class="cta-sub">Explore the full simulation, training logs, and React dashboard on GitHub.</p>
+  <div class="hero-actions" style="justify-content:center">
+    <a href="https://github.com" target="_blank" class="btn-primary">
+      View on GitHub
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M8 1C4.134 1 1 4.134 1 8c0 3.09 2.006 5.713 4.788 6.635.35.064.479-.152.479-.337 0-.166-.006-.604-.01-1.187-1.947.423-2.358-.94-2.358-.94-.318-.809-.777-1.024-.777-1.024-.636-.434.048-.425.048-.425.703.05 1.073.722 1.073.722.624 1.07 1.638.761 2.037.582.064-.452.244-.761.444-.936-1.554-.177-3.188-.777-3.188-3.456 0-.763.273-1.388.72-1.877-.072-.177-.312-.888.068-1.85 0 0 .586-.188 1.921.716A6.7 6.7 0 018 4.979a6.7 6.7 0 011.751.236c1.334-.904 1.92-.716 1.92-.716.38.962.14 1.673.069 1.85.448.489.72 1.114.72 1.877 0 2.686-1.637 3.277-3.196 3.45.251.217.474.645.474 1.3 0 .937-.009 1.692-.009 1.922 0 .187.127.405.482.336C12.996 13.71 15 11.088 15 8c0-3.866-3.134-7-7-7z" fill="currentColor"/>
+      </svg>
+    </a>
+    <a href="#features" class="btn-ghost">Read the docs →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-logo">RailFlow</span>
+  <div class="footer-links">
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="#">Docs</a>
+    <a href="#">Simulation logs</a>
+    <a href="#">License</a>
+  </div>
+  <span class="footer-copy">Dijkstra + RL &nbsp;·&nbsp; Python &amp; React</span>
+</footer>
+
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+function copyCode(btn) {
+  const body = btn.closest('.code-panel').querySelector('.code-body');
+  navigator.clipboard.writeText(body.innerText).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 2000);
+  });
+}
+</script>
+</body>
+</html>
